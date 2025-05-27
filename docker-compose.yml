@@ -11,6 +11,7 @@ services:
       - '8080:8080'
     volumes:
       - './spark-apps:/opt/spark-apps'
+      - './data:/opt/spark-data'
   spark-worker:
     build: ./docker
     environment:
@@ -18,5 +19,8 @@ services:
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_MEMORY=1G
       - SPARK_WORKER_CORES=1
+    volumes:
+      - ./data:/opt/spark-data
+
     ports:
       - 8080

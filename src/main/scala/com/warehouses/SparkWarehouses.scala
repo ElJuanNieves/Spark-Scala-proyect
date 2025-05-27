@@ -1,10 +1,15 @@
 package com.warehouses
 
-import org.apache.spark.sql.SparkSession
+import org.apache.log4j._
+import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
+import org.apache.spark._
+
 
 object SparkWarehouses {
   def main(args: Array[String]): Unit = {
+
+    Logger.getLogger("org").setLevel(Level.ERROR)
     val spark = SparkSession.builder
       .appName("WarehouseAnalysis")
       .master(sys.env.getOrElse("SPARK_MASTER_URL", "local[*]"))
@@ -12,7 +17,8 @@ object SparkWarehouses {
 
     try {
       // Use absolute path without file:// protocol
-      val inputPath = "/opt/spark-data/input/warehouses.csv"
+      //val inputPath = "/opt/spark-data/input/warehouses.csv"
+      val inputPath = "./data/input/warehouses.csv"
       println(s"Reading CSV from: $inputPath")
 
       // First check if the file exists using shell command
@@ -47,7 +53,8 @@ object SparkWarehouses {
       analysisDF.show()
       
       // Save the results
-      val outputPath = "/opt/spark-data/output/processed_warehouses"
+      //val outputPath = "/opt/spark-data/output/processed_warehouses"
+      val outputPath = "./data/output/processed_warehouses.csv"
       println(s"Writing results to: $outputPath")
 
       analysisDF.write

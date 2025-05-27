@@ -1,3 +1,3 @@
 #!/bin/sh
 
-./run-on-cluster.sh helloworld.run
+./run-on-cluster.sh com.warehouses.run

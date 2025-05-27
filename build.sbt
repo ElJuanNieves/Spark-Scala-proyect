@@ -16,3 +16,18 @@ Compile / run := Defaults.runTask(
   Compile / run / mainClass,
   Compile / run / runner
 ).evaluated
+
+// Assembly settings
+assembly / assemblyMergeStrategy := {
+  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+  case x => MergeStrategy.first
+}
+
+// Don't include Spark dependencies in the assembled JAR
+assembly / assemblyExcludedJars := {
+  val cp = (assembly / fullClasspath).value
+  cp filter { _.data.getName.startsWith("spark-") }
+}
+
+// Specify the name of the assembled JAR
+assembly / assemblyJarName := s"${name.value}-${version.value}.jar"

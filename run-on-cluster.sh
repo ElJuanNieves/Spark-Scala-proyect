@@ -1,6 +1,5 @@
 #!/bin/sh
 
-sbt clean assembly
 # Assuming you've already run 'sbt assembly', the assembly jar will be in the target directory.
 # We first copy it into the ./spark-apps directory, which is mounted as a volume into both the master and workers.
 cp target/scala-3.1.1/proyectsspark-0.1.0.jar ./spark-apps/spark-scala3-example.jar

@@ -1,0 +1,4 @@
+id,warehouse_name,location,capacity,capacity_status,processed_date
+1,Warehouse A,New York,1000,Medium,2025-05-28
+2,Warehouse B,Los Angeles,1500,Large,2025-05-28
+3,Warehouse C,Chicago,800,Medium,2025-05-28

@@ -5,6 +5,10 @@ import org.apache.spark.sql.functions._
 
 object SparkWarehouses {
   def main(args: Array[String]): Unit = {
+    import org.apache.log4j.{Level, Logger}
+    Logger.getLogger("org").setLevel(Level.WARN)
+    Logger.getLogger("akka").setLevel(Level.WARN)
+
     val spark = SparkSession.builder
       .appName("WarehouseAnalysis")
       .master(sys.env.getOrElse("SPARK_MASTER_URL", "local[*]"))

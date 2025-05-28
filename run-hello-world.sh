@@ -1,3 +1,4 @@
 #!/bin/sh
 
-./run-on-cluster.sh com.warehouses.run
+./run-on-cluster.sh com.warehouses.SparkWarehouses
+

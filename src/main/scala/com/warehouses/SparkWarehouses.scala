@@ -25,14 +25,14 @@ object SparkWarehouses {
       /*
         ****************Read and set data files path**********************
        */
-      val inputAmountsPath = "/opt/spark-data/input/amounts.csv"
+      val inputAmountsPath = "/opt/spark-data/input/warehouses/amounts.csv"
       println(s"Reading Amounts CSV from: $inputAmountsPath")
 
-      val inputPositionPath = "/opt/spark-data/input/positions.csv"
+      val inputPositionPath = "/opt/spark-data/input/warehouses/positions.csv"
       println(s"Reading Position CSV from: $inputPositionPath")
 
-      val outputCurrentAmountsPath = "/opt/spark-data/output/CurrentAmounts"
-      val outputWarehouseStatsPath = "/opt/spark-data/output/WarehouseStats"
+      val outputCurrentAmountsPath = "/opt/spark-data/output/warehouses/CurrentAmounts"
+      val outputWarehouseStatsPath = "/opt/spark-data/output/warehouses/WarehouseStats"
 
       val fs = org.apache.hadoop.fs.FileSystem.get(spark.sparkContext.hadoopConfiguration)
 

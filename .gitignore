@@ -45,3 +45,33 @@ build/
 
 ### Scala ###
 .bsp/
+.metals/
+.scalafmt.conf
+.scala-build/
+
+### Spark ###
+logs/
+spark-warehouse/
+metastore_db/
+checkpoint/
+derby.log
+**/spark-events/
+.spark-local*
+
+### SBT ###
+.history
+.cache
+.lib/
+dist/*
+
+### Local Development ###
+.env
+.envrc
+local.properties
+*.log
+*.tmp
+*.swp
+.java-version
+
+### Docker ###
+.dockerignore

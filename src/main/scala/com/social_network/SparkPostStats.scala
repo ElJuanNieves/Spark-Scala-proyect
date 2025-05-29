@@ -26,10 +26,10 @@ object SparkPostStats {
         /*
           ****************Read and set data files path**********************
          */
-        val inputAmountsPath = "/opt/spark-data/input/warehouses/amounts.csv"
+        val inputAmountsPath = "/opt/spark-data/input/socialNetwork/MESSAGE.csv"
         println(s"Reading Amounts CSV from: $inputAmountsPath")
 
-        val inputPositionPath = "/opt/spark-data/input/warehouses/positions.csv"
+        val inputPositionPath = "/opt/spark-data/input/SocialNetwork/MESSAGE_DIR.csv"
         println(s"Reading Position CSV from: $inputPositionPath")
 
         val outputCurrentAmountsPath = "/opt/spark-data/output/warehouses/CurrentAmounts"

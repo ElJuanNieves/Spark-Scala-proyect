@@ -3,7 +3,7 @@
 sbt clean assembly
 # Assuming you've already run 'sbt assembly', the assembly jar will be in the target directory.
 # We first copy it into the ./spark-apps directory, which is mounted as a volume into both the master and workers.
-cp target/scala-3.1.1/proyectsspark-0.1.0.jar ./spark-apps/spark-scala3-example.jar
+cp target/scala-3.1.1/proyectsspark-0.1.0.jar ./spark-apps/spark-scala3-execute.jar
 
 # We're using the default 'client' deploy mode here, so the driver will run on the master node
 # and the job's stdout will be printed to the terminal console.
@@ -15,4 +15,4 @@ docker compose exec spark-master /opt/spark/bin/spark-submit \
   --class "$1" \
   --driver-memory 4G \
   --executor-memory 1G \
-  /opt/spark-apps/spark-scala3-example.jar
+  /opt/spark-apps/spark-scala3-execute.jar

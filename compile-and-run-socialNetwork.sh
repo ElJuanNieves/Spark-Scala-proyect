@@ -1,5 +1,5 @@
 #!/bin/sh
 
-./compile-run-on-cluster.sh com.social_network.SparkPostStats
+./compile-run-on-cluster-sn.sh com.social_network.SparkPostStats
 
 

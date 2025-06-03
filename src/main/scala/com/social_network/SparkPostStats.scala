@@ -5,71 +5,66 @@ import org.apache.spark.sql.functions.*
 import org.apache.spark.sql.types.{DoubleType, StructField}
 import org.apache.spark.sql.types.*
 import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions.*
+import org.apache.hadoop.fs.{FileSystem, Path}
+import com.social_network.SocialNetwortUtils._
+import java.io.File
 
 
 object SparkPostStats {
 
-  object SparkWarehouses {
+  def main(args: Array[String]): Unit = {
+    import org.apache.log4j.{Level, Logger}
+    Logger.getLogger("org").setLevel(Level.WARN)
+    Logger.getLogger("akka").setLevel(Level.WARN)
 
-    def main(args: Array[String]): Unit = {
+    val spark = SparkSession.builder
+      .appName("Social Network retweet analysis")
+      .master(sys.env.getOrElse("SPARK_MASTER_URL", "local[*]"))
+      .getOrCreate()
 
-      import org.apache.log4j.{Level, Logger}
-      Logger.getLogger("org").setLevel(Level.WARN)
-      Logger.getLogger("akka").setLevel(Level.WARN)
+    try {
 
-      val spark = SparkSession.builder
-        .appName("SocialNetworkAnalysis")
-        .master(sys.env.getOrElse("SPARK_MASTER_URL", "local[*]"))
-        .getOrCreate()
+      val hadoopConf = spark.sparkContext.hadoopConfiguration
+      val fs = FileSystem.get(hadoopConf)
+      val avroPath = s"/opt/spark-data/input/socialNetwork/"
 
-      try {
-        /*
-          ****************Read and set data files path**********************
-         */
-        val inputAmountsPath = "/opt/spark-data/input/socialNetwork/MESSAGE.csv"
-        println(s"Reading Amounts CSV from: $inputAmountsPath")
+      val filesStatus = fs.listStatus(new Path(avroPath))
 
-        val inputPositionPath = "/opt/spark-data/input/SocialNetwork/MESSAGE_DIR.csv"
-        println(s"Reading Position CSV from: $inputPositionPath")
+      val avroFiles = filesStatus
+        .filter(_.getPath.getName.endsWith(".avro"))
+        .map(_.getPath.toString)
 
-        val outputCurrentAmountsPath = "/opt/spark-data/output/warehouses/CurrentAmounts"
-        val outputWarehouseStatsPath = "/opt/spark-data/output/warehouses/WarehouseStats"
+      val dfs: Map[String, DataFrame] = avroFiles.map { file =>
+        val name = new File(file).getName.stripSuffix(".avro")
+        val df = spark
+          .read
+          .format("avro")
+          .option("header", "true")
+          .load(file)
+        name -> df
+      }.toMap
 
-        val fs = org.apache.hadoop.fs.FileSystem.get(spark.sparkContext.hadoopConfiguration)
-
-        // First check if the file exists using shell command
-        val amountsPath = new org.apache.hadoop.fs.Path(inputAmountsPath)
-        if (!fs.exists(amountsPath)) {
-          throw new Exception(s"Input file not found at: $inputAmountsPath")
-        }
-
-        val positionPath = new org.apache.hadoop.fs.Path(inputPositionPath)
-        if (!fs.exists(positionPath)) {
-          throw new Exception(s"Input file not found at: $inputPositionPath")
-        }
-        /*
-          ****************Load data**********************
-         */
-
-
-        /*
-         ***********************Process Dataframes*************************************
-         */
-
-        /*
-        *************************Writes output****************************************
-         */
-
-
-
-      } catch {
-        case e: Exception =>
-          println(s"An error occurred: ${e.getMessage}")
-          e.printStackTrace()
-          System.exit(1)
-      } finally {
-        spark.stop()
+      dfs.foreach { case (name, df) =>
+        println(s"Schema for $name:")
+        df.printSchema()
       }
+
+      val wavesFiltered = retweet_wave_filter(dfs("RETWEET"))
+
+      val countRetweets = count_retweets(dfs("RETWEET"), "USER_ID", "MESSAGE_ID")
+      
+      
+
+      countRetweets.orderBy(col("count").desc).show(30, truncate = false)
+      
+    } catch {
+      case e: Exception =>
+        println("Error: " + e.getMessage)
+        e.printStackTrace()
+    } finally {
+      spark.stop()
     }
   }
 

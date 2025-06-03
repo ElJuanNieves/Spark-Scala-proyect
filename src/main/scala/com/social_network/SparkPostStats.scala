@@ -12,6 +12,14 @@ import com.social_network.SparkNetworkUtils._
 import java.io.File
 
 
+/**
+ * Social Network Post Analytics Application
+ * 
+ * Analyzes the propagation of retweets through social networks by tracking
+ * how messages spread in waves from original posters to their followers.
+ * This application identifies deep propagation patterns where messages
+ * reach multiple levels of the social graph.
+ */
 object SparkPostStats {
 
   def main(args: Array[String]): Unit = {
@@ -25,18 +33,25 @@ object SparkPostStats {
       .getOrCreate()
 
     try {
-
+      /**
+       * Data Source Configuration
+       * Set up file system access and identify input data location
+       */
       val hadoopConf = spark.sparkContext.hadoopConfiguration
       val fs = FileSystem.get(hadoopConf)
       val avroPath = s"/opt/spark-data/input/socialNetwork/"
 
       val filesStatus = fs.listStatus(new Path(avroPath))
 
-      val avroFiles = filesStatus
+      /**
+       * Data Loading
+       * Load all available Avro files containing social network data
+       */
+      val avroFilePaths = filesStatus
         .filter(_.getPath.getName.endsWith(".avro"))
         .map(_.getPath.toString)
 
-      val dfs: Map[String, DataFrame] = avroFiles.map { file =>
+      val dataFrameMap: Map[String, DataFrame] = avroFilePaths.map { file =>
         val name = new File(file).getName.stripSuffix(".avro")
         val df = spark
           .read
@@ -46,13 +61,18 @@ object SparkPostStats {
         name -> df
       }.toMap
 
-      dfs.foreach { case (name, df) =>
-        println(s"Schema for $name:")
-        df.printSchema()
-      }
-      
-      val wavesFiltered = retweet_wave_filter(dfs("MESSAGE"), dfs("RETWEET"), 0)
-      
+      /**
+       * Retweet Wave Analysis
+       * Analyze how messages propagate through the network in waves
+       * - Wave 0: Original message authors
+       * - Wave 1: Direct followers who retweet
+       * - Wave 2+: Secondary/tertiary propagation through the network
+       */
+      val retweetWaveResults = retweetWaveFilter(dataFrameMap("MESSAGE"), dataFrameMap("RETWEET"), 3)
+
+      println("Messages with deep propagation (2+ waves):")
+      retweetWaveResults.orderBy("depth").filter(col("depth") >= 2).show(80)
+
     } catch {
       case e: Exception =>
         println("Error: " + e.getMessage)

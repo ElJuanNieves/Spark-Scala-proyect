@@ -7,22 +7,27 @@ import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 
 
+/**
+ * Utility object for social network data processing with Spark.
+ * Provides schema definitions and methods for analyzing retweet propagation
+ * through social networks.
+ */
 object SparkNetworkUtils {
 
   val messageSchema = StructType(Array(
     StructField("USER_ID", LongType, nullable = false),
     StructField("MESSAGE_ID", LongType, nullable = false)
   ))
-  val message_dirScehma = StructType(Array(
+  val messageDirectorySchema = StructType(Array(
     StructField("MESSAGE_ID", LongType, nullable = false),
     StructField("TEXT", StringType, nullable = false)
   ))
-  val retweetScehma = StructType(Array(
+  val retweetSchema = StructType(Array(
     StructField("USER_ID", LongType, nullable = false),
     StructField("SUBSCRIBER_ID", LongType, nullable = false),
     StructField("MESSAGE_ID", LongType, nullable = false)
   ))
-  val user_dirSchema = StructType(Array(
+  val userDirectorySchema = StructType(Array(
     StructField("USER_ID", LongType, nullable = false),
     StructField("FIRST_NAME", LongType, nullable = false),
     StructField("LAST_NAME", LongType, nullable = false),
@@ -37,54 +42,82 @@ object SparkNetworkUtils {
 
   val networkSchema: Map[String, StructType] = Map(
     "MESSAGE"  -> messageSchema,
-    "MESSAGE_DIR"  -> message_dirScehma,
-    "USER_DIR" -> user_dirSchema,
-    "RETWEET" -> retweetScehma
+    "MESSAGE_DIR"  -> messageDirectorySchema,
+    "USER_DIR" -> userDirectorySchema,
+    "RETWEET" -> retweetSchema
   )
 
-
-  def count_retweets(df: DataFrame, user: String, message: String): DataFrame= {
-    val df_count = df
-      .groupBy(user, message)
-      .count()
-    df_count
+  /**
+   * Counts the number of retweets for each user-message combination.
+   *
+   * @param df DataFrame containing retweet data
+   * @param userCol Name of the user ID column
+   * @param messageCol Name of the message ID column
+   * @return DataFrame with counts of retweets grouped by user and message
+   */
+  def countRetweets(df: DataFrame, userCol: String, messageCol: String): DataFrame = {
+    df.groupBy(userCol, messageCol).count()
   }
 
-  def retweet_wave_filter(df_user_dir : DataFrame, df_retweet: DataFrame, waves: Int): DataFrame = {
-    val wave0 = countWave(df_user_dir, df_retweet, 0)
-    wave0
-      .orderBy("MESSAGE_ID")
-      .show()
-    val wave1 = countWave(nextWave(wave0, df_retweet), df_retweet, 1)
-    wave1
-  }
-  def nextWave(df_prev: DataFrame, df_retweet: DataFrame): DataFrame = {
+  /**
+   * Analyzes the propagation of retweets through a social network in waves.
+   * Each wave represents how far a message has traveled from its original source.
+   *
+   * @param initialUsers DataFrame containing the initial message authors
+   * @param retweetDF DataFrame containing retweet relationships
+   * @param maxWaves Maximum number of propagation waves to analyze
+   * @return DataFrame with retweet counts at each propagation depth
+   */
+  def retweetWaveFilter(initialUsers: DataFrame, retweetDF: DataFrame, maxWaves: Int): DataFrame = {
+    val initialWave = countWave(initialUsers, retweetDF, 0)
 
-    val df_next = df_retweet
-      .as("a")
-      .join(df_prev.as("b"), 
-        col("a.USER_ID") === col("b.SUBSCRIBER_ID") && 
-        col("a.MESSAGE_ID") === col("b.MESSAGE_ID"))
-      .select(col("b.SUBSCRIBER_ID"), col("b.MESSAGE_ID"))
-      .filter(col("b.SUBSCRIBER_ID").isNotNull)
-      .withColumnRenamed("SUBSCRIBER_ID", "USER_ID")
+    val (finalWaves, resultDF) = (1 to maxWaves).foldLeft((initialUsers, initialWave)) {
+      case ((prevWaveUsers, accumulatedDF), depth) =>
+        val nextWave = computeNextWave(prevWaveUsers, retweetDF)
+        val countedWave = countWave(nextWave, retweetDF, depth)
+        (nextWave, accumulatedDF.union(countedWave))
+    }
+
+    resultDF.orderBy("MESSAGE_ID", "depth")
+  }
+
+
+  /**
+   * Computes the next wave of retweets in the propagation chain.
+   * Identifies subscribers who retweeted messages from the previous wave.
+   *
+   * @param previousWave DataFrame containing users from the previous wave
+   * @param retweetDF DataFrame containing retweet relationships
+   * @return DataFrame with users in the next propagation wave
+   */
+  def computeNextWave(previousWave: DataFrame, retweetDF: DataFrame): DataFrame = {
+    retweetDF.as("r")
+      .join(previousWave.as("w"),
+        col("r.USER_ID") === col("w.USER_ID") &&
+          col("r.MESSAGE_ID") === col("w.MESSAGE_ID"))
+      .select(col("r.SUBSCRIBER_ID").alias("USER_ID"), col("r.MESSAGE_ID"))
+  }
+
+  /**
+   * Counts retweets for users at a specific propagation depth/wave.
+   *
+   * @param waveUsers DataFrame containing users at a specific propagation depth
+   * @param retweetDF DataFrame containing retweet relationships
+   * @param depth The current propagation depth/wave number
+   * @return DataFrame with retweet counts for the current wave
+   */
+  def countWave(waveUsers: DataFrame, retweetDF: DataFrame, depth: Int): DataFrame = {
+    val retweetCounts = countRetweets(retweetDF, "USER_ID", "MESSAGE_ID").as("c")
     
-    df_next.show()
-    df_next
-  }
-
-  def countWave(df_user_dir: DataFrame, df_retweet: DataFrame, depth: Int): DataFrame = {
-    val count_df = count_retweets(df_retweet, "USER_ID", "MESSAGE_ID").as("b")
-    count_df
-      .orderBy("MESSAGE_ID")
-      .show()
-    val discard_waves = df_user_dir
-      .as("a")
-      .join(count_df,
-        col("a.USER_ID") === col("b.USER_ID") && col("a.MESSAGE_ID") === col("b.MESSAGE_ID"))
-      .select(col("a.USER_ID"), col("a.MESSAGE_ID"), col("b.count"))
-      .withColumn("depth", lit(depth))
-
-    discard_waves
+    waveUsers.as("w")
+      .join(retweetCounts,
+        col("w.USER_ID") === col("c.USER_ID") &&
+          col("w.MESSAGE_ID") === col("c.MESSAGE_ID"))
+      .select(
+        col("w.USER_ID"),
+        col("w.MESSAGE_ID"),
+        col("c.count"),
+        lit(depth).alias("depth")
+      )
   }
 }

@@ -3,6 +3,19 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Additional Spark and Scala ###
+.worksheet/
+*.sc
+metastore/
+warehouse/
+*.crc
+_SUCCESS
+
+### Temporary Files ###
+*.parquet/
+*.avro/
+.tmp/
+checkpoints/
 ### IntelliJ IDEA ###
 .idea/modules.xml
 .idea/jarRepositories.xml

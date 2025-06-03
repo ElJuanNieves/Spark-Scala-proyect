@@ -24,13 +24,21 @@ Both applications run on a Dockerized local Spark cluster, allowing easy develop
 │   └── start-spark.sh      # Script to start Spark within containers
 ├── docker-compose.yml      # Docker Compose configuration
 └── Scripts:
-    ├── start-spark-cluster.sh      # Start the Spark cluster with Docker Compose
-    ├── stop-spark-cluster.sh       # Stop the Spark cluster
-    ├── open-spark-UIs.sh           # Open Spark UI in browser
-    ├── compile-run-on-cluster.sh   # Compile and run any Spark job on the cluster
-    ├── run-on-cluster.sh           # Run a compiled Spark job on the cluster
-    ├── compile-and-run-warehouse.sh # Compile and run the warehouse application
-    └── run-warehouse-info.sh       # Run the compiled warehouse application
+    ├── Cluster Management:
+    │   ├── start-spark-cluster.sh      # Start the Spark cluster with Docker Compose
+    │   ├── stop-spark-cluster.sh       # Stop the Spark cluster
+    │   └── open-spark-UIs.sh           # Open Spark UI in browser
+    │
+    ├── Warehouse Application:
+    │   ├── compile-and-run-warehouse.sh # Compile and run the warehouse application
+    │   ├── run-warehouse-info.sh       # Run the compiled warehouse application
+    │   ├── compile-run-on-cluster.sh   # Compile and run any Spark job on the cluster
+    │   └── run-on-cluster.sh           # Run a compiled Spark job on the cluster
+    │
+    └── Social Network Application:
+        ├── compile-and-run-socialNetwork.sh # Compile and run the social network application
+        ├── run-socialNetwork-info.sh   # Run the compiled social network application
+        └── compile-run-on-cluster-sn.sh # Compile and run social network job on cluster
 ```
 
 ## Technical Stack
@@ -85,6 +93,34 @@ sbt clean assembly
 
 This produces a JAR file at `target/scala-3.1.1/proyectsspark-0.1.0.jar`.
 
+### Script Details
+
+#### Cluster Management Scripts
+
+- **start-spark-cluster.sh**: Initializes the Docker-based Spark cluster with a master node and 2 worker nodes. Creates necessary directories and sets up the Dockerized environment.
+
+- **stop-spark-cluster.sh**: Shuts down all Docker containers in the Spark cluster and cleans up resources.
+
+- **open-spark-UIs.sh**: Opens browser tabs for the Spark Master UI and Spark Application UI (if running) for monitoring and debugging.
+
+#### Warehouse Application Scripts
+
+- **compile-and-run-warehouse.sh**: Compiles the entire project and runs the warehouse analysis application on the Spark cluster in one step.
+
+- **run-warehouse-info.sh**: Runs the pre-compiled warehouse application JAR on the Spark cluster without recompiling.
+
+- **compile-run-on-cluster.sh**: Compiles the project and runs any specified class as a Spark job. Usage: `./compile-run-on-cluster.sh <fully-qualified-class-name>`.
+
+- **run-on-cluster.sh**: Runs any specified class from the pre-compiled JAR as a Spark job. Usage: `./run-on-cluster.sh <fully-qualified-class-name>`.
+
+#### Social Network Application Scripts
+
+- **compile-and-run-socialNetwork.sh**: Compiles the entire project and runs the social network analysis application on the Spark cluster in one step.
+
+- **run-socialNetwork-info.sh**: Runs the pre-compiled social network application JAR on the Spark cluster without recompiling.
+
+- **compile-run-on-cluster-sn.sh**: Specialized script to compile and run the social network analysis on the Spark cluster with optimized settings.
+
 ### Running on the Cluster
 
 To compile and run the warehouse application:
@@ -97,6 +133,18 @@ To run the previously compiled warehouse application:
 
 ```bash
 ./run-warehouse-info.sh
+```
+
+To compile and run the social network application:
+
+```bash
+./compile-and-run-socialNetwork.sh
+```
+
+To run the previously compiled social network application:
+
+```bash
+./run-socialNetwork-info.sh
 ```
 
 To run any Spark application on the cluster:
@@ -150,6 +198,30 @@ This project works well with IntelliJ IDEA with the Scala plugin installed:
 4. Run your application with `./run-on-cluster.sh <your-main-class>`
 5. View results in the Spark UI and console output
 6. Shut down the cluster with `./stop-spark-cluster.sh` when done
+
+## Data Format Requirements and Processing
+
+### Warehouse Analysis
+- Input files expected in `/opt/spark-data/input/warehouses/`:
+  - **amounts.csv**: Contains columns `positionId`, `amount`, and `eventTime`
+  - **positions.csv**: Contains columns `positionId`, `warehouse`, `product`, and `eventTime`
+- Output is written to:
+  - `/opt/spark-data/output/warehouses/CurrentAmounts`: Current amount per position
+  - `/opt/spark-data/output/warehouses/WarehouseStats`: Statistics per warehouse and product
+
+### Social Network Analysis
+- Requires Avro files in the `/opt/spark-data/input/socialNetwork/` directory:
+  - **MESSAGE.avro**: Contains user posts with `USER_ID` and `MESSAGE_ID`
+  - **RETWEET.avro**: Contains retweet information with `USER_ID`, `SUBSCRIBER_ID`, and `MESSAGE_ID`
+  - **MESSAGE_DIR.avro**: Contains message content with `MESSAGE_ID` and `TEXT`
+  - **USER_DIR.avro**: Contains user information with `USER_ID`, `FIRST_NAME`, and `LAST_NAME`
+
+### Data Processing Flow
+1. Raw data is loaded from CSV/Avro files
+2. Data is processed using Spark transformations with the defined schemas
+3. For warehouse data: latest amounts are calculated and statistics are generated
+4. For social network data: retweet waves are analyzed to identify influence patterns
+5. Results are displayed and/or written to output locations
 
 ## Notes on Scala 3 Compatibility
 

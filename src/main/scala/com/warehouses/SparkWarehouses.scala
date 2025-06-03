@@ -8,6 +8,14 @@ import org.apache.spark.sql.expressions.Window
 import com.warehouses.WarehouseUtils.*
 
 
+/**
+ * Main application for warehouse inventory analysis using Apache Spark.
+ * This application processes warehouse position and amount data to:
+ * 1. Calculate the most recent amounts for each position
+ * 2. Generate statistical summaries for each warehouse and product
+ * 
+ * The results are saved as CSV files to the specified output paths.
+ */
 object SparkWarehouses {
 
   def main(args: Array[String]): Unit = {
@@ -22,8 +30,8 @@ object SparkWarehouses {
       .getOrCreate()
 
     try {
-      /*
-        ****************Read and set data files path**********************
+      /**
+       * Data file paths configuration
        */
       val inputAmountsPath = "/opt/spark-data/input/warehouses/amounts.csv"
       println(s"Reading Amounts CSV from: $inputAmountsPath")
@@ -35,8 +43,7 @@ object SparkWarehouses {
       val outputWarehouseStatsPath = "/opt/spark-data/output/warehouses/WarehouseStats"
 
       val fs = org.apache.hadoop.fs.FileSystem.get(spark.sparkContext.hadoopConfiguration)
-
-      // First check if the file exists using shell command
+      
       val amountsPath = new org.apache.hadoop.fs.Path(inputAmountsPath)
       if (!fs.exists(amountsPath)) {
         throw new Exception(s"Input file not found at: $inputAmountsPath")
@@ -46,8 +53,9 @@ object SparkWarehouses {
       if (!fs.exists(positionPath)) {
         throw new Exception(s"Input file not found at: $inputPositionPath")
       }
-      /*
-        ****************Load data**********************
+      
+      /**
+       * Schema definition and data loading
        */
 
       import spark.implicits._
@@ -57,6 +65,7 @@ object SparkWarehouses {
         StructField("amount", DoubleType, nullable = false),
         StructField("eventTime", LongType, nullable = false)
       ))
+      
       val positionSchema = StructType(Array(
         StructField("positionId", LongType, nullable = false),
         StructField("warehouse",  StringType, nullable = false),
@@ -64,7 +73,7 @@ object SparkWarehouses {
         StructField("eventTime", LongType, nullable = false)
       ))
 
-      val AmountDS = spark
+      val amountsDataFrame = spark
         .read
         .format("csv")
         .option("header", "true")
@@ -72,25 +81,26 @@ object SparkWarehouses {
         .load(inputAmountsPath)
 
       println("Original Amounts Data:")
-      AmountDS.show()
+      amountsDataFrame.show()
 
-      val PositionDF = spark
+      val positionsDataFrame = spark
         .read
         .format("csv")
         .option("header", "true")
         .schema(positionSchema)
         .load(inputPositionPath)
 
-      val cleanAmountsDF = AmountDS.withColumnRenamed("eventTime", "amount recorded at")
-      val cleanPositionsDF = PositionDF.withColumnRenamed("eventTime", "position_created_at")
+      val cleanAmountsDataFrame = amountsDataFrame.withColumnRenamed("eventTime", "amountRecordedAt")
+      val cleanPositionsDataFrame = positionsDataFrame.withColumnRenamed("eventTime", "positionCreatedAt")
 
-      val amountPerPosition = cleanAmountsDF
-        .join(cleanPositionsDF, Seq("positionId"), "inner")
-      /*
-       ***********************Process Dataframes*************************************
+      val amountPerPosition = cleanAmountsDataFrame
+        .join(cleanPositionsDataFrame, Seq("positionId"), "inner")
+        
+      /**
+       * Data processing and analysis
        */
-      val mostRecentAmount: DataFrame = calculate_recent_amount(amountPerPosition)
-      val statsPerWarehouse: DataFrame = stats_per_warehouse(amountPerPosition)
+      val mostRecentAmount: DataFrame = calculateRecentAmount(amountPerPosition)
+      val statsPerWarehouse: DataFrame = calculateWarehouseStats(amountPerPosition)
 
       println("Most recent amounts by position:")
       mostRecentAmount.show()
@@ -98,8 +108,8 @@ object SparkWarehouses {
       println("Stats by Warehouse Positions:")
       orderedStats.show()
 
-      /*
-      *************************Writes output****************************************
+      /**
+       * Output generation - write results to CSV files
        */
 
       mostRecentAmount

@@ -7,7 +7,7 @@ import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 
 
-object SocialNetwortUtils {
+object SparkNetworkUtils {
 
   val messageSchema = StructType(Array(
     StructField("USER_ID", LongType, nullable = false),
@@ -40,50 +40,33 @@ object SocialNetwortUtils {
     "MESSAGE_DIR"  -> message_dirScehma,
     "USER_DIR" -> user_dirSchema,
     "RETWEET" -> retweetScehma
-
   )
 
+
   def count_retweets(df: DataFrame, user: String, message: String): DataFrame= {
-    df
+    val df_count = df
       .groupBy(user, message)
       .count()
+    df_count.show()
+    df_count
   }
 
-  def retweet_wave_filter(df : DataFrame): DataFrame = {
-
-    val base = df
-      .select("USER_ID", "MESSAGE_ID")
-      .distinct()
-      .withColumnRenamed("USER_ID", "CURRENT_USER")
-      .withColumn("depth", lit(0))
-    
-    base.show()
-
-    val wave1 = expandWave(base, df, 1)
-    val wave2 = expandWave(wave1, df, 2)
-
-    val allWaves = base.union(wave1).union(wave2)
-      .dropDuplicates("CURRENT_USER", "MESSAGE_ID")
-      .withColumnRenamed("CURRENT_USER", "USER_ID")
-    
-    val filterWaves = allWaves.filter(col("depth") > 0 && col("depth") <= 2)
-    filterWaves.show(40, truncate = true)
-    allWaves
-      .filter(col("depth") > 0 && col("depth") <= 2)
+  def retweet_wave_filter(df_user_dir : DataFrame, df_retweet: DataFrame, waves: Int): DataFrame = {
+    val wave0 = expandWave(df_user_dir, df_retweet, 0)
+    wave0.show()
+    wave0
   }
 
-  def expandWave(df: DataFrame, df_retweet: DataFrame, depth: Int): DataFrame = {
-    val a = df.as("a")
-    val b = df_retweet.as("b")
+  def expandWave(df_user_dir: DataFrame, df_retweet: DataFrame, depth: Int): DataFrame = {
+    val a = df_user_dir.as("a")
 
-    a.join(b,
-        col("a.CURRENT_USER") === col("b.USER_ID") &&
-          col("a.MESSAGE_ID") === col("b.MESSAGE_ID")
-      )
-      .select(
-        col("b.SUBSCRIBER_ID").as("CURRENT_USER"),
-        col("b.MESSAGE_ID")
-      )
+    val count_df = count_retweets(df_retweet, "USER_ID", "MESSAGE_ID").as("b")
+
+    val discard_waves = df_user_dir
+      .join(count_df,
+        col("a.USER_ID") === col("b.USER_ID") && col("a.MESSAGE_ID") === ("b.MESSAGE_ID"))
       .withColumn("depth", lit(depth))
+    
+    discard_waves
   }
 }

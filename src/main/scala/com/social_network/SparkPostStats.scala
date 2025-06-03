@@ -8,7 +8,7 @@ import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.*
 import org.apache.hadoop.fs.{FileSystem, Path}
-import com.social_network.SocialNetwortUtils._
+import com.social_network.SparkNetworkUtils._
 import java.io.File
 
 
@@ -47,17 +47,13 @@ object SparkPostStats {
       }.toMap
 
       dfs.foreach { case (name, df) =>
-        println(s"Schema for $name:")
+        println(s"OLO for $name:")
         df.printSchema()
       }
-
-      val wavesFiltered = retweet_wave_filter(dfs("RETWEET"))
-
-      val countRetweets = count_retweets(dfs("RETWEET"), "USER_ID", "MESSAGE_ID")
       
-      
+      println("SI ES ESTA RUUNNNNNNNNNNNN")
 
-      countRetweets.orderBy(col("count").desc).show(30, truncate = false)
+      //val wavesFiltered = retweet_wave_filter(dfs("MESSAGE"), dfs("RETWEET"), 0)
       
     } catch {
       case e: Exception =>

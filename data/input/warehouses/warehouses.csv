@@ -1,0 +1,4 @@
+id,warehouse_name,location,capacity
+1,Warehouse A,New York,1000
+2,Warehouse B,Los Angeles,1500
+3,Warehouse C,Chicago,800

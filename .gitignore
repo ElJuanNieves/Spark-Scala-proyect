@@ -3,6 +3,19 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Additional Spark and Scala ###
+.worksheet/
+*.sc
+metastore/
+warehouse/
+*.crc
+_SUCCESS
+
+### Temporary Files ###
+*.parquet/
+*.avro/
+.tmp/
+checkpoints/
 ### IntelliJ IDEA ###
 .idea/modules.xml
 .idea/jarRepositories.xml
@@ -45,3 +58,33 @@ build/
 
 ### Scala ###
 .bsp/
+.metals/
+.scalafmt.conf
+.scala-build/
+
+### Spark ###
+logs/
+spark-warehouse/
+metastore_db/
+checkpoint/
+derby.log
+**/spark-events/
+.spark-local*
+
+### SBT ###
+.history
+.cache
+.lib/
+dist/*
+
+### Local Development ###
+.env
+.envrc
+local.properties
+*.log
+*.tmp
+*.swp
+.java-version
+
+### Docker ###
+.dockerignore

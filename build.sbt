@@ -7,7 +7,8 @@ ThisBuild / version := "0.1.0"
 
 // Dependencia de Spark con compatibilidad para Scala 2.13 (porque Spark aún no soporta directamente Scala 3)
 libraryDependencies ++= Seq(
-  ("org.apache.spark" %% "spark-sql" % "3.2.0" % "provided").cross(CrossVersion.for3Use2_13)
+  ("org.apache.spark" %% "spark-sql" % "3.2.0" % "provided").cross(CrossVersion.for3Use2_13),
+  ("org.apache.spark" %% "spark-avro" % "3.2.0").cross(CrossVersion.for3Use2_13)
 )
 
 // Permitir que sbt run incluya también dependencias 'provided' como Spark

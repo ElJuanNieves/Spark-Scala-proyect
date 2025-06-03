@@ -51,22 +51,38 @@ object SparkNetworkUtils {
   }
 
   def retweet_wave_filter(df_user_dir : DataFrame, df_retweet: DataFrame, waves: Int): DataFrame = {
-    val wave0 = expandWave(df_user_dir, df_retweet, 0)
-    wave0.show()
+    val wave0 = countWave(df_user_dir, df_retweet, 0)
     wave0
+      .orderBy("MESSAGE_ID")
+      .show()
+    val wave1 = countWave(nextWave(wave0, df_retweet), df_retweet, 1)
+    wave1
+  }
+  def nextWave(df_prev: DataFrame, df_retweet: DataFrame): DataFrame = {
+
+    val df_next = df_retweet
+      .as("a")
+      .join(df_prev.as("b"), 
+        col("a.USER_ID") === col("b.SUBSCRIBER_ID") && 
+        col("a.MESSAGE_ID") === col("b.MESSAGE_ID"))
+      .select(col("b.SUBSCRIBER_ID"), col("b.MESSAGE_ID"))
+      .filter(col("b.SUBSCRIBER_ID").isNotNull)
+      .withColumnRenamed("SUBSCRIBER_ID", "USER_ID")
+    
+    df_next.show()
+    df_next
   }
 
-  def expandWave(df_user_dir: DataFrame, df_retweet: DataFrame, depth: Int): DataFrame = {
-
+  def countWave(df_user_dir: DataFrame, df_retweet: DataFrame, depth: Int): DataFrame = {
     val count_df = count_retweets(df_retweet, "USER_ID", "MESSAGE_ID").as("b")
     count_df
       .orderBy("MESSAGE_ID")
       .show()
-
     val discard_waves = df_user_dir
       .as("a")
       .join(count_df,
-        col("a.USER_ID") === col("b.USER_ID") && col("a.MESSAGE_ID") === ("b.MESSAGE_ID"))
+        col("a.USER_ID") === col("b.USER_ID") && col("a.MESSAGE_ID") === col("b.MESSAGE_ID"))
+      .select(col("a.USER_ID"), col("a.MESSAGE_ID"), col("b.count"))
       .withColumn("depth", lit(depth))
 
     discard_waves

@@ -47,13 +47,11 @@ object SparkPostStats {
       }.toMap
 
       dfs.foreach { case (name, df) =>
-        println(s"OLO for $name:")
+        println(s"Schema for $name:")
         df.printSchema()
       }
       
-      println("SI ES ESTA RUUNNNNNNNNNNNN")
-
-      //val wavesFiltered = retweet_wave_filter(dfs("MESSAGE"), dfs("RETWEET"), 0)
+      val wavesFiltered = retweet_wave_filter(dfs("MESSAGE"), dfs("RETWEET"), 0)
       
     } catch {
       case e: Exception =>

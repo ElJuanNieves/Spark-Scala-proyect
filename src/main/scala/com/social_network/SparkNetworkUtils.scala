@@ -47,7 +47,6 @@ object SparkNetworkUtils {
     val df_count = df
       .groupBy(user, message)
       .count()
-    df_count.show()
     df_count
   }
 
@@ -58,15 +57,18 @@ object SparkNetworkUtils {
   }
 
   def expandWave(df_user_dir: DataFrame, df_retweet: DataFrame, depth: Int): DataFrame = {
-    val a = df_user_dir.as("a")
 
     val count_df = count_retweets(df_retweet, "USER_ID", "MESSAGE_ID").as("b")
+    count_df
+      .orderBy("MESSAGE_ID")
+      .show()
 
     val discard_waves = df_user_dir
+      .as("a")
       .join(count_df,
         col("a.USER_ID") === col("b.USER_ID") && col("a.MESSAGE_ID") === ("b.MESSAGE_ID"))
       .withColumn("depth", lit(depth))
-    
+
     discard_waves
   }
 }

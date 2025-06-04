@@ -69,9 +69,9 @@ object SparkPostStats {
        * - Wave 2+: Secondary/tertiary propagation through the network
        */
       val retweetWaveResults = retweetWaveFilter(dataFrameMap("MESSAGE"), dataFrameMap("RETWEET"), 3)
-
-      println("Messages with deep propagation (2+ waves):")
-      retweetWaveResults.orderBy("depth").filter(col("depth") >= 2).show(80)
+      println("--------Top Users with most retweets on d=0-------------- ")
+      /*******************Top Users with most retweets*******************/ 
+      retweetWaveResults.orderBy(desc("Count")).filter(col("depth") == 0).show(10)
 
     } catch {
       case e: Exception =>
